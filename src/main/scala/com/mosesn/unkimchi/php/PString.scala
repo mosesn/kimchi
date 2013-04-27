@@ -1,3 +1,3 @@
 package com.mosesn.kimchi.php
 
-case class PString(string: String) extends PObject with ValidKey
+case class PString(string: String) extends PType with ValidKey

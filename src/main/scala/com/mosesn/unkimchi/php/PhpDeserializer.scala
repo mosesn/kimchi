@@ -4,12 +4,12 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.input.CharSequenceReader
 
 object PhpDeserializer extends JavaTokenParsers {
-  def apply(string: String): PObject = phrase(pObject)(new CharSequenceReader(string)) match {
+  def apply(string: String): PType = phrase(pObject)(new CharSequenceReader(string)) match {
     case Success(result, next) => result
     case _ => throw new Exception("Was not valid PHP serialized code")
   }
 
-  private[this] lazy val pObject: Parser[PObject] = array | pInt | pBoolean | pString | pFloat | pNull
+  private[this] lazy val pObject: Parser[PType] = array | pInt | pBoolean | pString | pFloat | pNull
 
   private[this] lazy val array: Parser[PArray] = arrayPrefix into unverifiedArray
 
@@ -24,7 +24,7 @@ object PhpDeserializer extends JavaTokenParsers {
     }
   }
 
-  private[this] lazy val keyValue: Parser[(ValidKey, PObject)] = validKey ~ pObject ^^ {
+  private[this] lazy val keyValue: Parser[(ValidKey, PType)] = validKey ~ pObject ^^ {
     case first ~ second => (first, second)
   }
 

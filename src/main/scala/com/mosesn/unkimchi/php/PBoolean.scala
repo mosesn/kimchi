@@ -1,6 +1,6 @@
 package com.mosesn.kimchi.php
 
-case class PBoolean(bool: Boolean) extends PObject
+case class PBoolean(bool: Boolean) extends PType
 
 object PBoolean {
   def apply(num: Int): PBoolean = num match {
