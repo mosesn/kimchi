@@ -23,7 +23,7 @@ class PhpDeserializerSpec extends FunSpec with ShouldMatchers {
 
     it("should deserialize recursively") {
       val recursive = "a:1:{i:0;a:0:{}}"
-      val expected = PArray(Map(PInt(0) -> PArray.empty))
+      val expected = PArray(Seq(PInt(0) -> PArray.empty))
       val actual = PhpDeserializer(recursive)
       actual should be (expected)
     }
@@ -68,7 +68,7 @@ class PhpDeserializerSpec extends FunSpec with ShouldMatchers {
 
     it("should work for string keys") {
       val array = "a:1:{s:0:\\\"\\\";a:0:{}}"
-      PhpDeserializer(array) should be (PArray(Map(PString("") -> PArray.empty)))
+      PhpDeserializer(array) should be (PArray(Seq(PString("") -> PArray.empty)))
     }
 
     it("should parse a double") {
@@ -77,8 +77,33 @@ class PhpDeserializerSpec extends FunSpec with ShouldMatchers {
     }
 
     it("should parse a null") {
-      val pNull = "N;"
-      PhpDeserializer(pNull) should be (PNull)
+      val pNullString = "N;"
+      PhpDeserializer(pNullString) should be (PNull)
+    }
+
+    it("should parse an empty object") {
+      val oString = "O:7:\\\"MyClass\\\":0:{}"
+      PhpDeserializer(oString) should be (new PObject("MyClass", Seq()))
+    }
+
+    it("should parse a simple object") {
+      val oString = "O:7:\\\"MyClass\\\":1:{s:3:\\\"foo\\\";i:10;}"
+      PhpDeserializer(oString) should be (new PObject("MyClass", Seq(PString("foo") -> PInt(10))))
+    }
+
+    it("should parse an object") {
+      val oString = "O:7:\\\"MyClass\\\":2:{s:3:\\\"foo\\\";i:10;s:3:\\\"bar\\\";i:20;}"
+      PhpDeserializer(oString) should be (new PObject("MyClass", Seq(PString("foo") -> PInt(10), PString("bar") -> PInt(20))))
+    }
+
+    it("should parse a recursive object") {
+      val oString = "O:7:\\\"MyClass\\\":1:{s:3:\\\"foo\\\";r:1;}"
+      PhpDeserializer(oString) should be (new PObject("MyClass", Seq(PString("foo") -> PRecursion(1))))
+    }
+
+    it("should parse a referentially recursive object") {
+      val oString = "O:7:\\\"MyClass\\\":1:{s:3:\\\"foo\\\";R:1;}"
+      PhpDeserializer(oString) should be (new PObject("MyClass", Seq(PString("foo") -> PReference(1))))
     }
   }
 }

@@ -4,29 +4,31 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.input.CharSequenceReader
 
 object PhpDeserializer extends JavaTokenParsers {
-  def apply(string: String): PType = phrase(pObject)(new CharSequenceReader(string)) match {
+  def apply(string: String): PType = phrase(pType)(new CharSequenceReader(string)) match {
     case Success(result, next) => result
     case _ => throw new Exception("Was not valid PHP serialized code")
   }
 
-  private[this] lazy val pObject: Parser[PType] = array | pInt | pBoolean | pString | pFloat | pNull
+  private[this] lazy val pType: Parser[PType] = array | pInt | pBoolean | pString | pFloat | pNull | pObject
 
   private[this] lazy val array: Parser[PArray] = arrayPrefix into unverifiedArray
 
-  private[this] lazy val arrayPrefix: Parser[Int] = "a:" ~> wholeNumber <~ elem(':') ^^ { _.toInt }
+  private[this] lazy val arrayPrefix: Parser[Int] = elem('a') ~> numberPrefix
 
   private[this] lazy val unverifiedArray: Int => Parser[PArray] = { num =>
     "{" ~> rep(keyValue) <~ "}" ^^ { items =>
-      val arr = PArray(items.toMap)
+      val arr = PArray(items)
       if (arr.objects.size != num)
         throw new Exception("invalid php array expected array of size %d got one of size %d" format (num, arr.objects.size))
       arr
     }
   }
 
-  private[this] lazy val keyValue: Parser[(ValidKey, PType)] = validKey ~ pObject ^^ {
+  private[this] lazy val keyValue: Parser[(ValidKey, PType)] = validKey ~ pValue ^^ {
     case first ~ second => (first, second)
   }
+
+  private[this] lazy val pValue: Parser[PType] = pType | pReference | pRecursion
 
   private[this] lazy val validKey: Parser[ValidKey] = pInt | pString
 
@@ -38,12 +40,14 @@ object PhpDeserializer extends JavaTokenParsers {
     PInt(num.toInt)
   }
 
-  private[this] lazy val pString: Parser[PString] = stringPrefix into unverifiedString
+  private[this] lazy val pString: Parser[PString] = (stringPrefix into unverifiedString) <~ elem(';') ^^ (PString(_))
 
-  private[this] lazy val stringPrefix: Parser[Int] = elem('s') ~> elem(':') ~> wholeNumber<~ elem(':') ^^ (_.toInt)
+  private[this] lazy val stringPrefix: Parser[Int] = elem('s') ~> numberPrefix
 
-  private[this] lazy val unverifiedString: Int => Parser[PString] = { num =>
-    elem('\\') ~> elem('"') ~> string(num) <~ elem('\\') <~ elem('"') <~ elem(';') ^^ (PString(_))
+  private[this] lazy val numberPrefix: Parser[Int] = elem(':') ~> wholeNumber <~ elem(':') ^^ (_.toInt)
+
+  private[this] lazy val unverifiedString: Int => Parser[String] = { num =>
+    elem('\\') ~> elem('"') ~> string(num) <~ elem('\\') <~ elem('"')
   }
 
   private[this] lazy val string: Int => Parser[String] = { num =>
@@ -62,4 +66,39 @@ object PhpDeserializer extends JavaTokenParsers {
   }
 
   private[this] lazy val pNull: Parser[PNull.type] = elem('N') ~> elem(';') ^^ (_ => PNull)
+
+  private[this] lazy val pObject: Parser[PObject] = objectPrefix into unverifiedObject
+
+  private[this] lazy val objectName: Parser[String] = elem('O') ~> numberPrefix into unverifiedString
+
+  private[this] lazy val objectPrefix: Parser[(String, Int)] = objectName ~ objectSize ^^ {
+    case first ~ second => (first, second)
+  }
+
+  private[this] lazy val objectSize: Parser[Int] = elem(':') ~> wholeNumber <~ elem(':') ^^ (_.toInt)
+
+  private[this] lazy val unverifiedObject: ((String, Int)) => Parser[PObject] = {
+    case (className, numArgs) => unnamedObject(numArgs) ^^ {
+      PObject(className, _)
+    }
+  }
+
+  private[this] lazy val unnamedObject: Int => Parser[Seq[(PString, PType)]] = { num =>
+    elem('{') ~> rep(stringValue) <~ elem('}') ^^ { seq =>
+      require(seq.size == num, "the object needs to the same length as specified")
+      seq
+    }
+  }
+
+  private[this] lazy val stringValue: Parser[(PString, PType)] = pString ~ pValue ^^ {
+    case first ~ second => (first, second)
+  }
+
+  private[this] lazy val pRecursion: Parser[PRecursion] = elem('r') ~> elem(':') ~> wholeNumber <~ elem(';') ^^ { num =>
+    PRecursion(num.toInt)
+  }
+
+  private[this] lazy val pReference: Parser[PReference] = elem('R') ~> elem(':') ~> wholeNumber <~ elem(';') ^^ { num =>
+    PReference(num.toInt)
+  }
 }
