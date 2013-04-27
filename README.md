@@ -5,5 +5,16 @@ pickles/unpickles stuff
 tried to use parser combinators at work and realized how rusty I had gotten.  SO RUSTY.
 
 ## what is there so far?
-most of deserializing the php serialization format, but not the objects, which seems like a bitch
 
+### php serialization
+deserialization
+
+### json
+deserialization
+
+## todo
+1. JSON integration with fast json parsing libraries (GSON, jackson)
+2. Universal message format
+3. Serialization
+4. Thrift
+5. Protobufs
