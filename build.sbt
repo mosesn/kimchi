@@ -1,4 +1,4 @@
-name := "unkimchi"
+name := "kimchi"
 
 organization := "com.mosesn"
 

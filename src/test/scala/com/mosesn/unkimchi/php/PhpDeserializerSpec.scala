@@ -1,4 +1,4 @@
-package com.mosesn.unkimchi.php
+package com.mosesn.kimchi.php
 
 import org.scalatest.FunSpec
 import org.scalatest.matchers.ShouldMatchers

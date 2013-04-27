@@ -1,4 +1,4 @@
-package com.mosesn.unkimchi.php
+package com.mosesn.kimchi.php
 
 case class PBoolean(bool: Boolean) extends PObject
 

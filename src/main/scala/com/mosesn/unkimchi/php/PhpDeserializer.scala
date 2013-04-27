@@ -1,4 +1,4 @@
-package com.mosesn.unkimchi.php
+package com.mosesn.kimchi.php
 
 import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.input.CharSequenceReader

@@ -1,5 +1,5 @@
-## unkimchi
-unpickles stuff
+## kimchi
+pickles/unpickles stuff
 
 ## why???
 tried to use parser combinators at work and realized how rusty I had gotten.  SO RUSTY.
