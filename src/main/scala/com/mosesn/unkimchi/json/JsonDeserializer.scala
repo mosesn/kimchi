@@ -9,28 +9,25 @@ object JsonDeserializer extends JavaTokenParsers {
     case _ => throw new Exception("Was not valid json serialized code")
   }
 
-  private[this] lazy val json: Parser[JSON] = elem('{') ~> repsep(keyValue, ',') <~ elem('}') ^^ {
-    JSON(_)
+  private[this] lazy val json: Parser[JSON] = "{" ~> repsep(keyValue, ",") <~ "}" ^^ { seq =>
+    require((seq map (_._1)).distinct.size == seq.size, "there are duplicate key names")
+    JSON(seq)
   }
 
-  private[this] lazy val keyValue: Parser[(String, JType)] = stringLiteral ~ value ^^ {
+  private[this] lazy val keyValue: Parser[(String, JType)] = key ~ value ^^ {
     case first ~ second => (first, second)
   }
 
+  private[this] lazy val key: Parser[String] = stringLiteral <~ ":"
+
   private[this] lazy val value: Parser[JType] = json | array | string | number | boolean | jNull
 
-  private[this] lazy val array: Parser[JArray] = repsep(value, ',') ^^ (JArray(_))
+  private[this] lazy val array: Parser[JArray] = "[" ~> repsep(value, ",") <~ "]" ^^ (JArray(_))
 
   private[this] lazy val string: Parser[JString] = stringLiteral ^^ (JString(_))
 
-  private[this] lazy val number: Parser[JNumber] = whole | decimal
-
-  private[this] lazy val decimal: Parser[JDouble] = decimalNumber ^^ { num =>
-    JDouble(num.toDouble)
-  }
-
-  private[this] lazy val whole: Parser[JInt] = wholeNumber ^^ { num =>
-    JInt(num.toInt)
+  private[this] lazy val number: Parser[JNumber] = decimalNumber ^^ { num =>
+    JNumber(num.toDouble)
   }
 
   private[this] lazy val boolean: Parser[JBoolean] = t | f

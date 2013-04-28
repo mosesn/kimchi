@@ -1,3 +1,3 @@
 package com.mosesn.kimchi.json
 
-trait JNumber extends JType
+case class JNumber(num: Double) extends JType

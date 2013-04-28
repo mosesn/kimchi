@@ -17,10 +17,9 @@ object PhpDeserializer extends JavaTokenParsers {
 
   private[this] lazy val unverifiedArray: Int => Parser[PArray] = { num =>
     "{" ~> rep(keyValue) <~ "}" ^^ { items =>
-      val arr = PArray(items)
-      if (arr.objects.size != num)
-        throw new Exception("invalid php array expected array of size %d got one of size %d" format (num, arr.objects.size))
-      arr
+      require((items map (_._1)).distinct.size == items.size, "arrays cannot have duplicate keys")
+      require(items.size == num, "invalid php array expected array of size %d got one of size %d" format (num, items.size))
+      PArray(items)
     }
   }
 
@@ -78,8 +77,9 @@ object PhpDeserializer extends JavaTokenParsers {
   private[this] lazy val objectSize: Parser[Int] = elem(':') ~> wholeNumber <~ elem(':') ^^ (_.toInt)
 
   private[this] lazy val unverifiedObject: ((String, Int)) => Parser[PObject] = {
-    case (className, numArgs) => unnamedObject(numArgs) ^^ {
-      PObject(className, _)
+    case (className, numArgs) => unnamedObject(numArgs) ^^ { seq =>
+      require((seq map (_._1)).distinct.size == seq.size, "objects cannot have duplicate fields")
+      PObject(className, seq)
     }
   }
 

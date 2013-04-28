@@ -28,6 +28,19 @@ class PhpDeserializerSpec extends FunSpec with ShouldMatchers {
       actual should be (expected)
     }
 
+    it("should deserialize for nontrivial arrays") {
+      val recursive = "a:2:{i:0;a:0:{}i:1;a:0:{}}"
+      val expected = PArray(Seq(PInt(0) -> PArray.empty, PInt(1) -> PArray.empty))
+      val actual = PhpDeserializer(recursive)
+      actual should be (expected)
+    }
+
+    it("should reject duplicate keys") {
+      val invalid = "a:2:{i:0;a:0:{}i:0;a:0:{}}"
+      val throwable = evaluating{PhpDeserializer(invalid)} should produce [IllegalArgumentException]
+      throwable.getMessage should endWith ("arrays cannot have duplicate keys")
+    }
+
     it("should deserialize numbers") {
       val x = rand.nextInt()
       val number = "i:%d;" format x
@@ -94,6 +107,12 @@ class PhpDeserializerSpec extends FunSpec with ShouldMatchers {
     it("should parse an object") {
       val oString = "O:7:\\\"MyClass\\\":2:{s:3:\\\"foo\\\";i:10;s:3:\\\"bar\\\";i:20;}"
       PhpDeserializer(oString) should be (new PObject("MyClass", Seq(PString("foo") -> PInt(10), PString("bar") -> PInt(20))))
+    }
+
+    it("should rejects an object with duplicate fields") {
+      val oString = "O:7:\\\"MyClass\\\":2:{s:3:\\\"foo\\\";i:10;s:3:\\\"foo\\\";i:20;}"
+      val throwable = evaluating{PhpDeserializer(oString)} should produce [IllegalArgumentException]
+      throwable.getMessage should endWith ("objects cannot have duplicate fields")
     }
 
     it("should parse a recursive object") {
